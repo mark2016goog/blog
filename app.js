@@ -1,15 +1,17 @@
-const Koa = require('koa');
-const app = new Koa();
-const router = require('koa-router')();
-const views = require('koa-views');
-//const co = require('co');
-const convert = require('koa-convert');
-const json = require('koa-json');
-//const onerror = require('koa-onerror');
-const bodyparser = require('koa-bodyparser')();
-const logger = require('koa-logger');
-const favicon = require('koa-favicon');
-const process = require('process');
+const Koa = require('koa'),
+  app = new Koa(),
+  router = require('koa-router')(),
+  views = require('koa-views'),
+  convert = require('koa-convert'),
+  json = require('koa-json'),
+  bodyparser = require('koa-bodyparser'),
+  favicon = require('koa-favicon'),
+  mongo = require('./dbs/index.js'),
+  process = require('process'),
+  path = require('path'),
+  fs = require('fs');
+import session from 'koa-session2';
+import redisStore from './common/store.js';
 
 if(process.env.NODE_ENV != 'production'){
   /*热更新开始*/
@@ -31,34 +33,87 @@ if(process.env.NODE_ENV != 'production'){
   /*热更新结束*/
 }
 
-const index = require('./routes/index');
-const api = require('./routes/api');
+const index = require('./routes/index'),
+  article = require('./routes/article'),
+  user = require('./routes/user.js'),
+  messageWall = require('./routes/messageWall.js');
 // middlewares
-app.use(convert(bodyparser));
+app.use(bodyparser());
 app.use(convert(json()));
-app.use(convert(logger()));
+
+//加载第三方图片
+if(process.env.NODE_ENV != 'production'){
+  app.use(async (ctx, next) => {
+    if(ctx.url.indexOf('/img') === 0){
+      ctx.url = ctx.url.replace('?', '_').replace("&", '&amp;');
+    }
+    await next();
+  });
+}else{
+  app.use(async (ctx, next) => {
+    if(ctx.url.indexOf('/img') === 0){
+      ctx.url = ctx.url.replace("&", '&amp;');
+    }
+    await next();
+  });
+}
 
 app.use(favicon(__dirname + '/public/images/logo.jpg'));
 app.use(require('koa-static')(__dirname + '/public'));
-
+app.use(require('koa-static')(__dirname + '/article'));
 app.use(views(__dirname + '/views', {map: {html: 'ejs' }}));
+
+//session
+app.use(session({
+  key: "xiaobaozongID",
+  store: redisStore,
+  httpOnly: true
+}));
+
 // logger
 app.use(async (ctx, next) => {
   const start = new Date();
   await next();
   const ms = new Date() - start;
   console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
+  if(ctx.url.indexOf('/img') !== 0){
+    let data = {
+      ip: ctx.ip,
+      url: ctx.url,
+      method: ctx.method,
+      userName: ctx.session.userInfo && ctx.session.userInfo.userName,
+    };
+    //统计访问量
+    mongo.insertStatistic(data).catch(e => {
+      console.error(e);
+    });
+  }
 });
-
+//处理记住登录状态
+app.use(async (ctx, next)=> {
+  let loginStatus = ctx.cookies.get('loginStatus');
+  if(loginStatus && !ctx.session.userInfo){
+    ctx.session.userInfo = await mongo.findUserOne({loginStatus: loginStatus});
+  }
+  await next();
+  if(ctx.method == "POST" &&  ctx.session.userInfo && ctx.request.body.userInfo){
+    ctx.body.userInfo = {
+      userName: ctx.session.userInfo.userName,
+      avatarImg: ctx.session.userInfo.avatarImg,
+      userId: ctx.session.userInfo._id
+    };
+  }
+});
 router.use('/', index.routes(), index.allowedMethods());
-router.use('/api', api.routes(), api.allowedMethods());
+router.use('/article', article.routes(), article.allowedMethods());
+router.use('/user', user.routes(), user.allowedMethods());
+router.use('/messageWall', messageWall.routes(), messageWall.allowedMethods());
 
 app.use(router.routes(), router.allowedMethods());
 // response
 
 app.on('error', function(err, ctx){
-  console.log(err);
-  logger.error('server error', err, ctx);
+  console.error(err);
 });
 
 module.exports = app;

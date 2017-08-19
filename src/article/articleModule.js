@@ -1,8 +1,6 @@
-import {set_articleList, set_articleStatus} from '../mutation-types.js';
+import {set_articleList, set_articleStatus, set_userInfo} from '../mutation-types.js';
 import axios from 'axios';
-import {formatTime, assign} from "../base.js";
-import { Message } from 'element-ui';
-assign();
+import {formatTime} from '../common/base.js';
 const articleModule = {
 	state: {
 		list: [],
@@ -12,7 +10,7 @@ const articleModule = {
 		msg: '',
 		errorCode: 0,
 		loading: false,
-		activeIndex: '/article?type=all',
+		activeIndex: 'article-all',
 		search:'',
 		type: 'all'
 	},
@@ -37,10 +35,16 @@ const articleModule = {
 	},
 	actions: {
 		//获取文章列表
-		get_articleList({commit, state}, postData) {
+		get_articleList({state, commit, rootState}, postData) {
+			if(!rootState.userInfo.userId){
+				postData.userInfo = true;
+			}
 			commit(set_articleStatus, {loading: true});
-			return axios.post('/api/articleList', postData).then(res => {
+			return axios.post('/article/articleList', postData).then(res => {
 				commit(set_articleList, res.data.data.articleData);
+				if(res.data.userInfo){
+					commit(set_userInfo, res.data.userInfo);
+				}
 			}).catch(error => {
 				commit(set_articleStatus, {error: true, msg: '网络错误请重试！', errorCode: error.status, loading: false});
 			});

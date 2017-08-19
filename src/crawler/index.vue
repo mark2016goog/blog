@@ -4,9 +4,6 @@
       <el-form-item label="Cookie：">
         <el-input v-model="form.cookie"></el-input>
       </el-form-item>
-      <el-form-item label="Password：">
-        <el-input v-model="form.password"></el-input>
-      </el-form-item>
       <el-form-item label="文章url：" prop="url">
         <el-input type="textarea" v-model="form.url"></el-input>
       </el-form-item>
@@ -27,12 +24,10 @@
         form: {
           cookie: '',
           url: '',
-          password: ''
         },
         logData: '',
         rules: {
-          url: [{ required: true, message: '请输入文章地址，用 ”," 分割'}],
-          password: [{ required: true, message: '请输入密码'}]
+          url: [{ required: true, message: '请输入文章地址，用 ”," 分割'}]
         }
       };
     },
@@ -40,14 +35,28 @@
       onSubmit(formName) {
         this.$refs[formName].validate((valid) => {
           if(valid){
-            this.postAddress();
+            let urlArr = null;
+            if(this.form.url.indexOf('[{') != -1){
+                try{
+                  urlArr = JSON.parse(this.form.url);
+                }catch(e){
+                  this.$message({
+                    showClose: true,
+                    message: 'url解析失败',
+                    type: 'error'
+                  });
+                  console.log(e);
+                  return false;
+                }
+            }
+            this.postAddress(urlArr);
           }
         });
       },
-      postAddress() {
-        this.axios.post('/api/crawlerArticle', {
+      postAddress(urlArr) {
+        this.$myAjax.post(this, '/article/crawlerArticle', {
           cookie: this.form.cookie,
-          url: this.form.url,
+          url: urlArr ? urlArr : this.form.url,
           password: this.form.password
         }).then(res => {
           if(res.data.errorCode == 0){
@@ -72,7 +81,7 @@
         });
       },
       getLog() {
-        this.axios.post('/api/articleLog').then(res => {
+        this.$myAjax.post(this, '/article/articleLog').then(res => {
           this.logData = res.data.data;
         }).catch(err => {
           this.$message({

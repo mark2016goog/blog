@@ -2,7 +2,7 @@
   <el-row :gutter="20" class="articleLayout" v-loading="loading"
     element-loading-text="拼命加载中">
     <el-col :span="20">
-      <articleItem  v-for="item in list" key="item.id" :detailsData="item"></articleItem>
+      <articleItem  v-for="item in list" :key="item.id" :detailsData="item"></articleItem>
       <p v-show="!list.length" class="nodata">暂无数据</p>
     </el-col>
     <el-col :span="4">
@@ -17,12 +17,16 @@
         layout="total, prev, pager, next">
       </el-pagination>
     </el-col>
+    <footer class="record">
+      <a href="http://www.miitbeian.gov.cn">渝ICP备16013153号</a>
+    </footer>
   </el-row>
 </template>
 <script type="text/javascript">
   import articleItem from '../components/articleItem.vue';
   import { mapActions, mapState, mapGetters, mapMutations } from 'vuex';
-  import { backToTop } from '../base.js';
+  import { backToTop } from '../common/base.js';
+  import { set_articleStatus } from '../mutation-types.js';
   export default {
     data() {
       return {
@@ -36,9 +40,7 @@
         total: state => state.articleModule.total,
         loading: state => state.articleModule.loading,
         type: state => state.articleModule.type,
-        search: state => state.articleModule.search,
-        errorCode: state => state.articleModule.errorCode,
-        msg: state => state.articleModule.msg
+        search: state => state.articleModule.search
       }),
       ...mapGetters({
         list: 'articleList'
@@ -48,9 +50,7 @@
       ...mapActions([
         'get_articleList' 
       ]),
-      ...mapMutations([
-        'set_articleStatus'
-      ]),
+      ...mapMutations([set_articleStatus]),
       //点击分页
       handleCurrentChange(currentPage){
         backToTop();
@@ -65,37 +65,20 @@
     },
     beforeRouteEnter(to, from, next) {
       next(vm => {
-        vm.set_articleStatus({type: (to.query.type || 'all')});
-        if(!(vm.list && vm.list.length)) vm.handleCurrentChange(1);
-        if(vm.type != 'all'){
-          vm.set_articleStatus({activeIndex: to.fullPath});
+        if(vm.currentPage && vm.currentPage != 1){
+          vm.set_articleStatus({currentPage: 1});
+        }else{
+          vm.get_articleList({type: to.query.type || 'all', search: to.query.search, currentPage: 1 });
         }
       });
     },
     beforeRouteUpdate(to, from, next){
-      this.set_articleStatus({type: (to.query.type || 'all')});
-      if(!this.search && this.type != 'all'){
-        this.set_articleStatus({activeIndex: to.fullPath});
-      }else{
-        this.set_articleStatus({activeIndex: '/article?type=all'});
-      }
-      if(this.currentPage != 1){
-        this.set_articleStatus({currentPage: 1});
-      }else{
+      if(this.currentPage == 1){
         this.handleCurrentChange(1);
+      }else{
+        this.set_articleStatus({currentPage: 1});
       }
       next();
-    },
-    watch: {
-      errorCode: function  (val, oldVal) {
-        if(val != 0){
-          this.$message({
-            showClose: true,
-            message: this.msg, 
-            type: 'error'
-          });
-        }
-      }
     },
     components: {
       articleItem: articleItem
@@ -105,7 +88,6 @@
 <style lang="less">
   .articleLayout {
     padding: 0 5px;
-    margin: 0 !important;
     .nodata {
       padding:12px 0;
       text-align: center;
@@ -116,6 +98,16 @@
       .el-pagination {
         float: right;
       }
+    }
+  }
+  .record {
+    text-align: center;
+    width: 100%;
+    padding-bottom: 10px;
+    position: absolute;
+    bottom: 0;
+    a {
+      color: #000;
     }
   }
 </style>

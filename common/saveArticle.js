@@ -7,9 +7,14 @@ let request = require('request'),
 	imgSavePath = config.imgSavePath,
 	logFile = config.logFile,
 	addr = 'https://segmentfault.com';
-function getData(url, imgpath){
+function getData(url, option = {}){
 	return new Promise((resolve, reject) => {
-		request(addr + url, function (err, res, body) {
+		request({
+			url: addr + url,
+			headers: {
+				Cookie: option.cookie || ''
+			}
+		}, function (err, res, body) {
 			if(err) {
 				writeLog('获取文章失败： '+ url, true);
 				reject({
@@ -21,7 +26,7 @@ function getData(url, imgpath){
 			writeLog('获取文章成功：'+ url); 
 			let	promiseArr = [], $, dataObject, container;
 				$ = cheerio.load(body, {decodeEntities: false});
-				if(url.search('/p/') !== 0){
+				if(/^\/a\//.test(url)){
 					dataObject = {
 						id: path.basename(url),
 						title: $('#articleTitle').text().trim(),
@@ -35,15 +40,15 @@ function getData(url, imgpath){
 				}else{
 					let tempAddr = $('.news__read-meta a').attr('href');
 					dataObject = {
-						id: url.match(/\d+/) && url.match(/\d+/),
-						title: $('.news__read-title').text().trim(),
-						source: $('.news__read-meta a').text(),
-						time: returnTime($('.news__read-meta').text().split('，')[1].split(' ')[0]),
-						description: $('meta[name="description"]').attr('content'),
-						address: tempAddr.search('http') == -1 ? addr + tempAddr : tempAddr
+						id: option.id || url.match(/\d+/) && url.match(/\d+/),
+						title: option.title ||$('.news__read-title').text().trim(),
+						source: option.source || $('.news__read-meta a').text(),
+						time: option.time || returnTime($('.news__read-meta').text().split('，')[1]),
+						description: option.description || $('meta[name="description"]').attr('content'),
+						address: option.address || tempAddr.search('http') == -1 ? addr + tempAddr : tempAddr
 					};
-					container = $('.news__read-content');
-					dataObject.label = returnNewLabel(container);
+					container = $(option.container || '.news__read-content');
+					dataObject.label = option.label || returnNewLabel(container);
 				}
 				if(!container.html()){
 					writeLog('文章获取失败： '+ url + '没有文章内容', true);
@@ -57,7 +62,7 @@ function getData(url, imgpath){
 				writeLog('请求图片数量： '+ imgs.length);
 				if(imgs.length){
 					imgs.filter(function(item, index) {
-						let src = $(this).data('src'),
+						let src = $(this).data('src') || $(this).attr('src'),
 							_src = undefined;
 						if(src){
 							let self = $(this);
@@ -93,7 +98,7 @@ function getData(url, imgpath){
 												extname = '.svg';
 											}
 										}
-										let imgSrc = _src ?  src : (imgpath || '')+ src + extname;
+										let imgSrc = _src ?  src : src + extname;
 										self.attr('src', imgSrc);
 									}).on('error', function(err){
 										writeLog('请求图片失败： '+ (_src||src)+ ' 来至url： '+ url, true);
@@ -173,17 +178,18 @@ function returnTime(str){
 			arr.unshift('2017');
 		}
 	switch (true){
-		case str.indexOf('小时前') != -1:
+		case str.indexOf('分钟') != -1:
+			timeNumber = Date.now() - Number(arr[0]) * 1000 * 60;
+			return new Date(timeNumber);
+		case str.indexOf('小时') != -1:
 			timeNumber = Date.now() - Number(arr[0])*1000*60*60;
-			tempTime = new Date(timeNumber).setHours(0, 0, 0);
-			return new Date(tempTime);
-		case str.indexOf('天前') != -1:
+			return new Date(timeNumber);
+		case str.indexOf('天') != -1:
 			timeNumber = Date.now() - Number(arr[0])*1000*60*60*24;
 			tempTime = new Date(timeNumber).setHours(0, 0, 0);
 			return new Date(tempTime);
 		default:
 			return arr ?  new Date(arr.join(',')) : new Date();
-
 	}
 }
 function mkdirsSync(dirpath, mode) { 
