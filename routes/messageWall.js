@@ -49,7 +49,10 @@ router.post('/messageList', async function(ctx, next){
 router.post('/messageComment', base.loginGo, async function(ctx, next){
 	try {
 		let body = ctx.request.body;
+<<<<<<< HEAD
 		console.log(body);
+=======
+>>>>>>> release-v2.0.0
 		let result = await mongo.addComment({_id: body.id}, {content: body.content, commentInfo: ctx.session.userInfo._id});
 		ctx.body = {
 			errorCode: 0,

@@ -83,7 +83,11 @@ router.get('authGithub', async function(ctx, next){
 		await ctx.render('error', {error:{status: 500, message: '授权登录失败，请重试'}});
 		return false;
 	}
+<<<<<<< HEAD
 	let loginData = await mongo.findUserOne({authId: userInfo.id});
+=======
+	let loginData = await mongo.findUserOne({authId: saveData.authId});
+>>>>>>> release-v2.0.0
 	if(loginData){
 		saveData._id = loginData._id;
 		ctx.session.userInfo = saveData;
@@ -96,8 +100,17 @@ router.get('authGithub', async function(ctx, next){
 	}
 	ctx.redirect('/');
 	}catch(e){
+<<<<<<< HEAD
 		console.error(e);
 		await ctx.render('error', {error:{ status: 500, message: '授权登录失败，请重试'}});
+=======
+		if(e.code == 11000){
+			await ctx.render('error', {error:{ status: 500, message: '用户名已注册，无法授权登陆'}});
+		}else{
+			console.error(e);
+			await ctx.render('error', {error:{ status: 500, message: '授权登录失败，请重试'}});
+		}
+>>>>>>> release-v2.0.0
 	}
 });
 
@@ -118,12 +131,20 @@ router.get('authQQ', async function(ctx, next){
 			authId: openData.openid,
 			type: 'qq'
 		};
+<<<<<<< HEAD
 		if(userInfo && userInfo.msg < 0){
+=======
+		if((userInfo && userInfo.msg < 0) || !saveData.authId){
+>>>>>>> release-v2.0.0
 			console.error(userInfo);
 			await ctx.render('error', {error:{status: 500, message: '授权登录失败，请重试'}});
 			return false;
 		}
+<<<<<<< HEAD
 		let loginData = await mongo.findUserOne({authId: userInfo.id});
+=======
+		let loginData = await mongo.findUserOne({authId: saveData.authId});
+>>>>>>> release-v2.0.0
 		if(loginData){
 			saveData._id = loginData._id;
 			ctx.session.userInfo = saveData;
@@ -136,8 +157,17 @@ router.get('authQQ', async function(ctx, next){
 		}
 		ctx.redirect('/');
 	}catch(e){
+<<<<<<< HEAD
 		console.error(e);
 		await ctx.render('error', {error:{ status: 500, message: '授权登录失败，请重试'}});
+=======
+		if(e.code == 11000){
+			await ctx.render('error', {error:{ status: 500, message: '用户名已注册，无法授权登陆'}});
+		}else{
+			console.error(e);
+			await ctx.render('error', {error:{ status: 500, message: '授权登录失败，请重试'}});
+		}
+>>>>>>> release-v2.0.0
 	}
 });
 module.exports = router;
