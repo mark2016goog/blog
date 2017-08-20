@@ -111,7 +111,6 @@ app.use(async (ctx, next)=> {
     };
   }
 });
-
 router.use('/', index.routes(), index.allowedMethods());
 router.use('/article', article.routes(), article.allowedMethods());
 router.use('/user', user.routes(), user.allowedMethods());

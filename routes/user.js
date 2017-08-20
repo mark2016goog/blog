@@ -19,11 +19,7 @@ router.post('/register', base.noLoginGo, async function(ctx, next){
 		ctx.body = validate;
 		return false;
 	}
-<<<<<<< HEAD
-	if(postData.verificationCode != ctx.session.emailCode.code && postData.email != ctx.session.emailCode.email){
-=======
 	if(!ctx.session.emailCode || (postData.verificationCode != ctx.session.emailCode.code && postData.email != ctx.session.emailCode.email)){
->>>>>>> release-v2.0.0
 		obj = {
 			errorCode: -8,
 			msg: '验证码错误，请重新输入'
@@ -144,11 +140,7 @@ router.post('/userNameExist', base.noLoginGo, async function(ctx, next){
 		return false;
 	}
 	try {
-<<<<<<< HEAD
-		let userList = await mongo.findUserInfo({username: data.userName});
-=======
 		let userList = await mongo.findUserInfo({userName: data.userName});
->>>>>>> release-v2.0.0
 		if(userList.length){
 			ctx.body = {
 				errorCode: -6,
@@ -161,11 +153,7 @@ router.post('/userNameExist', base.noLoginGo, async function(ctx, next){
 			};
 		}
 	}catch(error){
-<<<<<<< HEAD
-		console.log(error);
-=======
 		console.error(error);
->>>>>>> release-v2.0.0
 		ctx.body = {
 			errorCode: 0,
 			msg: ''
@@ -219,11 +207,7 @@ router.post('/login', base.noLoginGo, async function(ctx, next){
 //找回密码
 router.post('/recoverPassword', base.noLoginGo, async function(ctx, next){
 	let data = ctx.request.body;
-<<<<<<< HEAD
-	if(data.email != ctx.session.emailCode.email && data.verificationCode != ctx.session.emailCode.code){
-=======
 	if(!ctx.session.emailCode || (data.email != ctx.session.emailCode.email && data.verificationCode != ctx.session.emailCode.code)){
->>>>>>> release-v2.0.0
 		ctx.body = {
 			errorCode: -1,
 			msg: '邮箱或然验证码错误，请重新输入'
